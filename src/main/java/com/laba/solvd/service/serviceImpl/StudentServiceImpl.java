@@ -5,7 +5,6 @@ import com.laba.solvd.dao.StudentRepo;
 import com.laba.solvd.model.Student;
 import com.laba.solvd.service.StudentService;
 
-import java.sql.SQLException;
 import java.util.List;
 
 public class StudentServiceImpl implements StudentService {
