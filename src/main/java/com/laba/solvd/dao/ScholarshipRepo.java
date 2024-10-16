@@ -1,8 +1,7 @@
 package com.laba.solvd.dao;
 
-import com.laba.solvd.model.Student;
+import com.laba.solvd.model.Scholarship;
 import com.laba.solvd.utils.ConnectionPool;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,42 +9,45 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StudentRepo implements GenericDao<Student> {
+public class ScholarshipRepo implements GenericDao<Scholarship> {
     private final ConnectionPool connectionPool = ConnectionPool.getInstance();
-    private static final Logger logger = LoggerFactory.getLogger(StudentRepo.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(ScholarshipRepo.class.getName());
 
-    private Student mapStudent(ResultSet rs) throws SQLException {
-        return new Student(
+    private Scholarship mapScholarship(ResultSet rs) throws SQLException {
+        return new Scholarship(
                 rs.getLong("id"),
-                rs.getString("first_name"),
-                rs.getString("last_name"),
-                rs.getString("email"),
-                rs.getTimestamp("enrollment_date").toLocalDateTime(),
-                rs.getLong("university_id")
+                rs.getLong("student_id"),
+                rs.getDouble("scholarship_amount"),
+                rs.getTimestamp("award_date").toLocalDateTime()
         );
     }
 
-    public boolean isEmailExists(String email) {
-        String query = "SELECT COUNT(*) FROM students WHERE email = ?";
+    @Override
+    public void create(Scholarship scholarship) {
+        String query = "INSERT INTO scholarships (student_id, scholarship_amount, award_date) VALUES (?, ?, ?)";
         Connection connection = null;
         PreparedStatement stmt = null;
-        ResultSet rs = null;
-
+        ResultSet resultSet = null;
         try {
             connection = connectionPool.getConnection();
-            stmt = connection.prepareStatement(query);
-            stmt.setString(1, email);
-            rs = stmt.executeQuery();
+            stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            stmt.setLong(1, scholarship.getStudentId());
+            stmt.setDouble(2, scholarship.getScholarshipAmount());
+            stmt.setTimestamp(3, Timestamp.valueOf(scholarship.getAwardDate()));
 
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+            stmt.executeUpdate();
+
+            resultSet = stmt.getGeneratedKeys();
+            if (resultSet.next()) {
+                scholarship.setId(resultSet.getLong(1));
             }
+            logger.info("Scholarship created: {}", scholarship);
         } catch (SQLException e) {
-            logger.error("Error checking email: " + email, e);
+            logger.error("Error creating scholarship: {}", scholarship, e);
         } finally {
-            if (rs != null) {
+            if (resultSet != null) {
                 try {
-                    rs.close();
+                    resultSet.close();
                 } catch (SQLException e) {
                     logger.error("Error closing ResultSet", e);
                 }
@@ -61,59 +63,11 @@ public class StudentRepo implements GenericDao<Student> {
                 connectionPool.releaseConnection(connection);
             }
         }
-        return false;
     }
-
-
-    @Override
-    public void create(Student student) {
-        if (isEmailExists(student.getEmail())) {
-            logger.error("Student with email " + student.getEmail() + " already exists.");
-            return;
-        }
-
-        // Если email не существует, открываем соединение и выполняем вставку
-        String query = "INSERT INTO students (first_name, last_name, email, enrollment_date, university_id) VALUES (?, ?, ?, ?, ?)";
-        Connection connection = null;
-        PreparedStatement stmt = null;
-        try {
-            connection = connectionPool.getConnection();
-            stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-            stmt.setString(1, student.getFirstName());
-            stmt.setString(2, student.getLastName());
-            stmt.setString(3, student.getEmail());
-            stmt.setTimestamp(4, Timestamp.valueOf(student.getEnrollmentDate()));
-            stmt.setLong(5, student.getUniversityId());
-
-            stmt.executeUpdate();
-
-            // Получаем сгенерированный ключ для нового студента
-            try (ResultSet resultSet = stmt.getGeneratedKeys()) {
-                if (resultSet.next()) {
-                    student.setId(resultSet.getLong(1));
-                }
-            }
-        } catch (SQLException e) {
-            logger.error("Error creating student: " + student, e);
-        } finally {
-            // Закрываем ресурсы
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException e) {
-                    logger.error("Error closing PreparedStatement", e);
-                }
-            }
-            if (connection != null) {
-                connectionPool.releaseConnection(connection);
-            }
-        }
-    }
-
 
     @Override
     public void deleteById(Long id) {
-        String query = "DELETE FROM students WHERE id = ?";
+        String query = "DELETE FROM scholarships WHERE id = ?";
         Connection connection = null;
         PreparedStatement stmt = null;
         try {
@@ -121,9 +75,9 @@ public class StudentRepo implements GenericDao<Student> {
             stmt = connection.prepareStatement(query);
             stmt.setLong(1, id);
             stmt.executeUpdate();
-            logger.info("Student with ID " + id + " was deleted");
+            logger.info("Scholarship with ID {} deleted", id);
         } catch (SQLException e) {
-            logger.error("Error deleting student with id: " + id, e);
+            logger.error("Error deleting scholarship with ID: {}", id, e);
         } finally {
             if (stmt != null) {
                 try {
@@ -138,8 +92,9 @@ public class StudentRepo implements GenericDao<Student> {
         }
     }
 
-    public Student findById(Long id) {
-        String query = "SELECT * FROM students WHERE id = ?";
+    @Override
+    public Scholarship findById(Long id) {
+        String query = "SELECT * FROM scholarships WHERE id = ?";
         Connection connection = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -149,10 +104,11 @@ public class StudentRepo implements GenericDao<Student> {
             stmt.setLong(1, id);
             rs = stmt.executeQuery();
             if (rs.next()) {
-                return mapStudent(rs);
+                logger.info("Scholarship found with ID: {}", id);
+                return mapScholarship(rs);
             }
         } catch (SQLException e) {
-            logger.error("Error finding student with id: " + id, e);
+            logger.error("Error finding scholarship with ID: {}", id, e);
         } finally {
             if (rs != null) {
                 try {
@@ -176,9 +132,9 @@ public class StudentRepo implements GenericDao<Student> {
     }
 
     @Override
-    public List<Student> findAll() {
-        String query = "SELECT * FROM students";
-        List<Student> students = new ArrayList<>();
+    public List<Scholarship> findAll() {
+        String query = "SELECT * FROM scholarships";
+        List<Scholarship> scholarships = new ArrayList<>();
         Connection connection = null;
         Statement stmt = null;
         ResultSet rs = null;
@@ -188,10 +144,11 @@ public class StudentRepo implements GenericDao<Student> {
             stmt = connection.createStatement();
             rs = stmt.executeQuery(query);
             while (rs.next()) {
-                students.add(mapStudent(rs));
+                scholarships.add(mapScholarship(rs));
             }
+            logger.info("Retrieved all scholarships");
         } catch (SQLException e) {
-            logger.error("Error retrieving all students", e);
+            logger.error("Error retrieving all scholarships", e);
         } finally {
             if (rs != null) {
                 try {
@@ -211,28 +168,63 @@ public class StudentRepo implements GenericDao<Student> {
                 connectionPool.releaseConnection(connection);
             }
         }
-        return students;
+        return scholarships;
+    }
+
+    public Scholarship findByStudentId(Long studentId) {
+        String query = "SELECT * FROM scholarships WHERE student_id = ? LIMIT 1";
+        Connection connection = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            connection = connectionPool.getConnection();
+            stmt = connection.prepareStatement(query);
+            stmt.setLong(1, studentId);
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                logger.info("Retrieved scholarship for student ID: {}", studentId);
+                return mapScholarship(rs);
+            }
+        } catch (SQLException e) {
+            logger.error("Error retrieving scholarship for student ID: {}", studentId, e);
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    logger.error("Error closing ResultSet", e);
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    logger.error("Error closing PreparedStatement", e);
+                }
+            }
+            if (connection != null) {
+                connectionPool.releaseConnection(connection);
+            }
+        }
+        return null;
     }
 
     @Override
-    public void update(Student student) {
-        String query = "UPDATE students SET first_name = ?, last_name = ?, email = ?, enrollment_date = ?, university_id = ? WHERE id = ?";
+    public void update(Scholarship scholarship) {
+        String query = "UPDATE scholarships SET student_id = ?, scholarship_amount = ?, award_date = ? WHERE id = ?";
         Connection connection = null;
         PreparedStatement stmt = null;
         try {
             connection = connectionPool.getConnection();
             stmt = connection.prepareStatement(query);
-            stmt.setString(1, student.getFirstName());
-            stmt.setString(2, student.getLastName());
-            stmt.setString(3, student.getEmail());
-            stmt.setTimestamp(4, Timestamp.valueOf(student.getEnrollmentDate()));
-            stmt.setLong(5, student.getUniversityId());
-            stmt.setLong(6, student.getId());
-
+            stmt.setLong(1, scholarship.getStudentId());
+            stmt.setDouble(2, scholarship.getScholarshipAmount());
+            stmt.setTimestamp(3, Timestamp.valueOf(scholarship.getAwardDate()));
+            stmt.setLong(4, scholarship.getId());
             stmt.executeUpdate();
-            logger.info("Student with ID " + student.getId() + " was updated successfully");
+            logger.info("Scholarship updated: {}", scholarship);
         } catch (SQLException e) {
-            logger.error("Error updating student: " + student, e);
+            logger.error("Error updating scholarship: {}", scholarship, e);
         } finally {
             if (stmt != null) {
                 try {
