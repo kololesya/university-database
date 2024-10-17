@@ -1,23 +1,28 @@
 package com.laba.solvd.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.sql.DriverManager;
 
 public class ConnectionManager {
-    private static final String CONFIG_FILE = "db.properties"; // Файл должен находиться в resources
+    private static final String CONFIG_FILE = "db.properties";
     private static String url;
     private static String username;
     private static String password;
 
+    private static final Logger logger = LoggerFactory.getLogger(ConnectionManager.class);
+
     static {
         try (InputStream input = ConnectionManager.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
             if (input == null) {
-                System.out.println("Sorry, unable to find " + CONFIG_FILE);
-                //return; // Если файл не найден, выходим
+                logger.error("Unable to find " + CONFIG_FILE);
+                throw new RuntimeException("Database configuration file not found.");
             }
 
             Properties properties = new Properties();
@@ -26,24 +31,26 @@ public class ConnectionManager {
             username = properties.getProperty("db.username");
             password = properties.getProperty("db.password");
 
-            // Выводим значения для проверки
-            System.out.println("URL: " + url);
-            System.out.println("Username: " + username);
+            logger.info("Database URL: {}", url);
+            logger.info("Database Username: {}", username);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Error loading database properties", e);
+            throw new RuntimeException("Failed to load database properties.", e);
         }
     }
 
     public static Connection getConnection() {
         if (url == null || username == null || password == null) {
-            System.out.println("Database connection details are not properly set.");
-            return null;
+            logger.error("Database connection details are not properly set.");
+            throw new RuntimeException("Database connection details are not properly set.");
         }
         try {
-            return DriverManager.getConnection(url, username, password);
+            Connection connection = DriverManager.getConnection(url, username, password);
+            logger.info("Connection established successfully.");
+            return connection;
         } catch (SQLException e) {
-            e.printStackTrace();
-            return null;
+            logger.error("Error establishing database connection", e);
+            throw new RuntimeException("Failed to establish database connection.", e);
         }
     }
 }
