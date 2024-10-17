@@ -7,16 +7,16 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ConnectionPool {
     private static final int POOL_SIZE = 10;
     private static ConnectionPool instance;
-    private static final List<Connection> availableConnections = new ArrayList<>();
-    private static final List<Connection> usedConnections = new ArrayList<>();
-
+    private final ConcurrentLinkedQueue<Connection> availableConnections = new ConcurrentLinkedQueue<>();
+    private final List<Connection> usedConnections = new ArrayList<>();
     private static final Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
 
-    public ConnectionPool() {
+    private ConnectionPool() {
         for (int i = 0; i < POOL_SIZE; i++) {
             availableConnections.add(createNewConnection());
         }
@@ -36,35 +36,28 @@ public class ConnectionPool {
         return connection;
     }
 
-    public synchronized Connection getConnection() {
-        if (availableConnections.isEmpty()) {
+    public Connection getConnection() {
+        Connection connection = availableConnections.poll();
+        if (connection == null) {
             if (usedConnections.size() < POOL_SIZE) {
-                availableConnections.add(createNewConnection());
+                connection = createNewConnection();
             } else {
                 logger.warn("No available connections in the pool. Used: {}, Available: {}", usedConnections.size(), availableConnections.size());
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    logger.error("Thread interrupted while waiting for a connection", e);
-                    Thread.currentThread().interrupt();
-                }
-                return getConnection();
+                // Optionally wait for a connection to become available
+                return null; // or throw an exception
             }
         }
 
-        Connection connection = availableConnections.remove(availableConnections.size() - 1);
         usedConnections.add(connection);
         logger.info("Connection acquired. Available: {}, Used: {}", availableConnections.size(), usedConnections.size());
         return connection;
     }
 
-
-    public synchronized void releaseConnection(Connection connection) {
+    public void releaseConnection(Connection connection) {
         if (connection != null) {
             usedConnections.remove(connection);
-            availableConnections.add(connection);
-            notifyAll();
-            logger.info("Connection returned to the pool. Available: " + availableConnections.size() + ", Used: " + usedConnections.size());
+            availableConnections.offer(connection);
+            logger.info("Connection returned to the pool. Available: {}, Used: {}", availableConnections.size(), usedConnections.size());
         }
     }
 
@@ -100,14 +93,11 @@ public class ConnectionPool {
     }
 
     public void shutdown() {
-        for (Connection conn : availableConnections) {
-            try {
-                conn.close();
-            } catch (SQLException e) {
-                logger.error("Error closing connection", e);
-            }
-        }
-        availableConnections.clear();
-        usedConnections.clear();
+        closeAllConnections();
+    }
+
+    // Новый метод для получения количества активных соединений
+    public int getActiveConnectionsCount() {
+        return usedConnections.size();
     }
 }

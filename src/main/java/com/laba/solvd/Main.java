@@ -15,7 +15,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        ConnectionPool connectionPool = new ConnectionPool();
+        ConnectionPool connectionPool = ConnectionPool.getInstance();
 
         StudentRepo studentRepo = new StudentRepo();
         ScholarshipRepo scholarshipRepo = new ScholarshipRepo();
@@ -26,7 +26,6 @@ public class Main {
         Student newStudent = new Student(null, "Alice", "Johnson", "alice.johnson@example.com", LocalDateTime.now(), 1L);
 
         studentService.create(newStudent);
-        System.out.println("Created Student: " + newStudent);
 
         Scholarship newScholarship = new Scholarship(null, 3L, 1500.00, LocalDateTime.now());
         scholarshipService.create(newScholarship);
@@ -45,7 +44,6 @@ public class Main {
 
         studentRepo.update(studentToUpdate);
 
-        connectionPool.shutdown();
-        System.out.println("Final pool state: " + connectionPool.getPoolState());
+        System.out.println(connectionPool.getActiveConnectionsCount());
     }
 }
