@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,6 +15,5 @@ public class Professor {
     private String lastName;
     private String email;
     private Double salary;
-    private Long departmentId;
-    private Long universityId;
+    private List<Course> courses;
 }
