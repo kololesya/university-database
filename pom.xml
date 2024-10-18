@@ -40,6 +40,13 @@
             <artifactId>logback-classic</artifactId>
             <version>1.4.12</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.openjax.xml/sax -->
+        <dependency>
+            <groupId>org.openjax.xml</groupId>
+            <artifactId>sax</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
 </project>
