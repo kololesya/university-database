@@ -9,10 +9,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Dormitory {
-    private Long id;
-    private String name;
-    private Byte capacity;
-    private String address;
-    private List<Room> rooms;
+public class Room {
+    private String roomNumber;
+    private List<Student> students;
 }
