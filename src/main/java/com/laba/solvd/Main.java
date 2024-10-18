@@ -1,5 +1,7 @@
 package com.laba.solvd;
 
+import com.laba.solvd.dao.GenericDao;
+//import com.laba.solvd.dao.ProfessorRepo;
 import com.laba.solvd.dao.ScholarshipRepo;
 import com.laba.solvd.dao.StudentRepo;
 import com.laba.solvd.model.Scholarship;
@@ -14,14 +16,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         ConnectionPool connectionPool = ConnectionPool.getInstance();
 
-        StudentRepo studentRepo = new StudentRepo();
+        GenericDao<Student> studentRepo = new StudentRepo();
         ScholarshipRepo scholarshipRepo = new ScholarshipRepo();
+        //ProfessorRepo professorRepo = new ProfessorRepoImpl();
 
         ScholarshipService scholarshipService = new ScholarshipServiceImpl(scholarshipRepo);
-        StudentService studentService = new StudentServiceImpl(studentRepo, scholarshipService);
+        StudentService studentService = new StudentServiceImpl((StudentRepo) studentRepo, scholarshipService);
 
         Student newStudent = new Student(null, "Alice", "Johnson", "alice.johnson@example.com", LocalDateTime.now(), 1L);
 

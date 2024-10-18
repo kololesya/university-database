@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<university>
+    <name>Harvard University</name>
+    <location>Cambridge, MA</location>
+    <foundedYear>1636</foundedYear>
+    <departments>
+        <department id="1">
+            <name>Computer Science</name>
+            <professors>
+                <professor id="1">
+                    <firstName>John</firstName>
+                    <lastName>Doe</lastName>
+                    <email>jdoe@harvard.edu</email>
+                    <salary>90000</salary>
+                </professor>
+            </professors>
+        </department>
+    </departments>
+    <students>
+        <student id="1">
+            <firstName>Alice</firstName>
+            <lastName>Smith</lastName>
+            <email>asmith@harvard.edu</email>
+            <enrollmentDate>2024-01-15T00:00:00</enrollmentDate>
+        </student>
+    </students>
+</university>
