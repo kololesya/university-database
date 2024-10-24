@@ -1,16 +1,17 @@
 package com.laba.solvd.service.serviceImpl;
 
-import com.laba.solvd.dao.ScholarshipRepo;
+import com.laba.solvd.dao.ScholarshipDao;
+import com.laba.solvd.dao.impl.ScholarshipRepo;
 import com.laba.solvd.model.Scholarship;
-import com.laba.solvd.service.ScholarshipService;
+import com.laba.solvd.service.IScholarshipService;
 
 import java.util.List;
 
-public class ScholarshipServiceImpl implements ScholarshipService {
-    private final ScholarshipRepo scholarshipRepo;
+public class ScholarshipServiceImpl implements IScholarshipService {
+    private final ScholarshipDao scholarshipRepo;
 
-    public ScholarshipServiceImpl(ScholarshipRepo scholarshipRepo) {
-        this.scholarshipRepo = scholarshipRepo;
+    public ScholarshipServiceImpl() {
+        this.scholarshipRepo = new ScholarshipRepo();
     }
 
     @Override
@@ -24,18 +25,13 @@ public class ScholarshipServiceImpl implements ScholarshipService {
     }
 
     @Override
-    public Scholarship findById(Long id) {
+    public Scholarship findById(Long id) throws InterruptedException {
         return scholarshipRepo.findById(id);
     }
 
     @Override
     public List<Scholarship> findAll() {
         return scholarshipRepo.findAll();
-    }
-
-    @Override
-    public Scholarship findByStudentId(Long studentId) {
-        return scholarshipRepo.findByStudentId(studentId);
     }
 
     @Override

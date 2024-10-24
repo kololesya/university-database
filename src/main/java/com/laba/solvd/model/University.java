@@ -16,4 +16,5 @@ public class University {
     private int foundedYear;
     private List<Department> departments;
     private List<Student> students;
+    private List<Dormitory> dormitories;
 }

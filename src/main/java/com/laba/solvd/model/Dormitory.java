@@ -12,7 +12,7 @@ import java.util.List;
 public class Dormitory {
     private Long id;
     private String name;
-    private Byte capacity;
+    private Integer capacity;
     private String address;
     private List<Room> rooms;
 }

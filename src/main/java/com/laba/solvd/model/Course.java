@@ -13,5 +13,5 @@ public class Course {
     private Long id;
     private String name;
     private Byte credits;
-    private List<Grade> grades;
+    private List<Schedule> schedules;
 }

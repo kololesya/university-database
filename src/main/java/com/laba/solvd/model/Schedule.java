@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Schedule {
     private Long id;
-    private Long courseId;
     private Long classroomId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

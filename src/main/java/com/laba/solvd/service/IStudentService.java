@@ -4,7 +4,7 @@ import com.laba.solvd.model.Student;
 
 import java.util.List;
 
-public interface StudentService {
+public interface IStudentService {
     Student findById(Long id) throws InterruptedException;
 
     List<Student> findAll();
@@ -14,4 +14,10 @@ public interface StudentService {
     void update(Student student);
 
     void deleteById(Long id);
+
+    void assignScholarshipToStudent(Long studentId, Long scholarshipId);
+
+    void getStudentWithClubInfo(Long studentId);
+
+    void getStudentWithScholarshipInfo(Long studentId);
 }
