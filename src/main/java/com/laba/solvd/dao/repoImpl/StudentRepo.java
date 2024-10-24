@@ -1,5 +1,7 @@
-package com.laba.solvd.dao;
+package com.laba.solvd.dao.repoImpl;
 
+import com.laba.solvd.dao.StudentDao;
+import com.laba.solvd.model.Scholarship;
 import com.laba.solvd.model.Student;
 import com.laba.solvd.utils.ConnectionPool;
 import org.slf4j.Logger;
@@ -9,8 +11,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StudentRepo implements GenericDao<Student> {
-    private final ConnectionPool connectionPool = ConnectionPool.getInstance();
+public class StudentRepo implements StudentDao {
+    private static final ConnectionPool CONNECTION_POOL = ConnectionPool.getInstance();
     private static final Logger logger = LoggerFactory.getLogger(StudentRepo.class.getName());
 
     private Student mapStudent(ResultSet rs) throws SQLException {
@@ -26,17 +28,14 @@ public class StudentRepo implements GenericDao<Student> {
 
     @Override
     public void create(Student student) {
-        Connection connection = null;
-        PreparedStatement stmt = null;
+        Connection connection = CONNECTION_POOL.getConnection();
         try {
-            connection = connectionPool.getConnection();
-
             if (isEmailExists(student.getEmail(), connection)) {
                 logger.error("Student with email {} already exists.", student.getEmail());
                 return;
             }
             String query = "INSERT INTO students (first_name, last_name, email, enrollment_date, university_id) VALUES (?, ?, ?, ?, ?)";
-            stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 
             stmt.setString(1, student.getFirstName());
             stmt.setString(2, student.getLastName());
@@ -55,16 +54,7 @@ public class StudentRepo implements GenericDao<Student> {
         } catch (SQLException e) {
             logger.error("Error creating student: {}", student, e);
         } finally {
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException e) {
-                    logger.error("Error closing PreparedStatement", e);
-                }
-            }
-            if (connection != null) {
-                connectionPool.releaseConnection(connection);
-            }
+            CONNECTION_POOL.releaseConnection(connection);
         }
     }
 
@@ -86,119 +76,106 @@ public class StudentRepo implements GenericDao<Student> {
     @Override
     public void deleteById(Long id) {
         String query = "DELETE FROM students WHERE id = ?";
-        Connection connection = null;
+        Connection connection = CONNECTION_POOL.getConnection();
         PreparedStatement stmt = null;
 
         try {
-            connection = connectionPool.getConnection();
             stmt = connection.prepareStatement(query);
             stmt.setLong(1, id);
             stmt.executeUpdate();
             logger.info("Student with ID " + id + " was deleted");
         } catch (SQLException e) {
             logger.error("Error deleting student with id: " + id, e);
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (connection != null) {
-                    connectionPool.releaseConnection(connection);
-                }
-            } catch (SQLException e) {
-                logger.error("Error closing resources after deletion", e);
-            }
+        } finally {CONNECTION_POOL.releaseConnection(connection);
         }
     }
 
     @Override
     public Student findById(Long id) {
-        String query = "SELECT * FROM students WHERE id = ?";
-        Connection connection = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+        String query = """
+        SELECT s.id, s.first_name, s.last_name, s.email, s.enrollment_date, s.university_id, 
+               sc.id AS scholarshipId, sc.scholarship_amount, sc.award_date
+        FROM Students s
+        LEFT JOIN Scholarships sc ON s.id = sc.student_id
+        WHERE s.id = ?""";
+
+        Connection connection = CONNECTION_POOL.getConnection();
 
         try {
-            connection = connectionPool.getConnection();
-            stmt = connection.prepareStatement(query);
-            stmt.setLong(1, id);
-            rs = stmt.executeQuery();
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setLong(1, id); // Устанавливаем ID студента
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return mapStudent(rs);
+                Student student = mapStudent(rs);
+
+                if (rs.getInt("scholarshipId") != 0) {
+                    Scholarship scholarship = new Scholarship();
+                    scholarship.setId(rs.getLong("scholarshipId"));
+                    scholarship.setScholarshipAmount(rs.getDouble("scholarship_amount"));
+                    //scholarship.setStudentId(rs.getLong("student_id"));
+                    scholarship.setAwardDate(rs.getTimestamp("award_date").toLocalDateTime()); // или rs.getDate("award_date").toLocalDate(), если нужно только дату
+                    student.setScholarship(scholarship);
+                }
+
+                return student;
             }
 
         } catch (SQLException e) {
             logger.error("Error finding student with id: " + id, e);
         } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException e) {
-                    logger.error("Error closing ResultSet", e);
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException e) {
-                    logger.error("Error closing PreparedStatement", e);
-                }
-            }
-            if (connection != null) {
-                connectionPool.releaseConnection(connection);
-            }
+            CONNECTION_POOL.releaseConnection(connection);
         }
         return null;
     }
-
-
     @Override
     public List<Student> findAll() {
-        String query = "SELECT * FROM students";
+        String query = """
+            SELECT s.id, s.first_name, s.last_name, s.email, s.enrollment_date, s.university_id,
+                   sc.id AS scholarshipId, sc.student_id, sc.scholarship_amount, sc.award_date
+            FROM Students s
+            LEFT JOIN Scholarships sc ON s.id = sc.student_id""";
+
         List<Student> students = new ArrayList<>();
-        Connection connection = null;
-        Statement stmt = null;
-        ResultSet rs = null;
+        Connection connection = CONNECTION_POOL.getConnection();
 
         try {
-            connection = connectionPool.getConnection();
-            stmt = connection.createStatement();
-            rs = stmt.executeQuery(query);
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
 
             while (rs.next()) {
-                students.add(mapStudent(rs));
+                Student student = mapStudent(rs);
+
+                if (rs.getInt("scholarshipId") != 0) {
+                    Scholarship scholarship = new Scholarship();
+                    scholarship.setId(rs.getLong("scholarshipId"));
+                    scholarship.setScholarshipAmount(rs.getDouble("scholarship_amount"));
+                    scholarship.setStudentId(rs.getLong("student_id"));
+                    scholarship.setAwardDate(rs.getTimestamp("award_date").toLocalDateTime()); // или rs.getDate("award_date").toLocalDate(), если нужно только дату
+                    student.setScholarship(scholarship);
+                }
+
+                students.add(student);
             }
         } catch (SQLException e) {
             logger.error("Error retrieving all students", e);
         } finally {
-            try {
-                if (rs != null) {
-                    rs.close();
-                }
-                if (stmt != null) {
-                    stmt.close();
-                }
-                if (connection != null) {
-                    connectionPool.releaseConnection(connection);
-                }
-            } catch (SQLException e) {
-                logger.error("Error closing resources", e);
-            }
+            CONNECTION_POOL.releaseConnection(connection);
         }
         return students;
     }
 
-
     @Override
-    public void update(Student student) {
+    public Student update(Student student) {
         String updateQuery = "UPDATE students SET first_name = ?, last_name = ?, email = ?, enrollment_date = ?, university_id = ? WHERE id = ?";
-        Connection connection = null;
-        PreparedStatement updateStmt = null;
+        Connection connection = CONNECTION_POOL.getConnection();
 
         try {
-            connection = connectionPool.getConnection();
-            updateStmt = connection.prepareStatement(updateQuery);
+            if (!isIdExists(student.getId(), connection)) {
+                logger.error("Student with ID " + student.getId() + " does not exist, update failed.");
+                return null;
+            }
+            PreparedStatement updateStmt = connection.prepareStatement(updateQuery);
 
             updateStmt.setString(1, student.getFirstName());
             updateStmt.setString(2, student.getLastName());
@@ -218,16 +195,24 @@ public class StudentRepo implements GenericDao<Student> {
         } catch (SQLException e) {
             logger.error("Error updating student: " + student, e);
         } finally {
-            if (updateStmt != null) {
-                try {
-                    updateStmt.close();
-                } catch (SQLException e) {
-                    logger.error("Error closing PreparedStatement", e);
+            CONNECTION_POOL.releaseConnection(connection);
+        }
+        return null;
+    }
+
+    private boolean isIdExists(Long id, Connection connection) {
+        String query = "SELECT COUNT(*) FROM students WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
                 }
             }
-            if (connection != null) {
-                connectionPool.releaseConnection(connection);
-            }
+        } catch (SQLException e) {
+            logger.error("Error checking id existence for: {}", id, e);
         }
+        return false;
     }
+
 }
