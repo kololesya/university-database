@@ -1,6 +1,7 @@
 package com.laba.solvd.dao.repoImpl;
 
 import com.laba.solvd.dao.StudentDao;
+import com.laba.solvd.model.Grade;
 import com.laba.solvd.model.Scholarship;
 import com.laba.solvd.model.Student;
 import com.laba.solvd.utils.ConnectionPool;
@@ -131,10 +132,13 @@ public class StudentRepo implements StudentDao {
     @Override
     public List<Student> findAll() {
         String query = """
-            SELECT s.id, s.first_name, s.last_name, s.email, s.enrollment_date, s.university_id,
-                   sc.id AS scholarshipId, sc.student_id, sc.scholarship_amount, sc.award_date
-            FROM Students s
-            LEFT JOIN Scholarships sc ON s.id = sc.student_id""";
+        SELECT s.id, s.first_name, s.last_name, s.email, s.enrollment_date, s.university_id,
+               sc.id AS scholarshipId, sc.scholarship_amount, sc.award_date,
+               g.course_id, g.grade
+        FROM Students s
+        LEFT JOIN Scholarships sc ON s.id = sc.student_id
+        LEFT JOIN Grades g ON s.id = g.student_id
+        """;
 
         List<Student> students = new ArrayList<>();
         Connection connection = CONNECTION_POOL.getConnection();
@@ -143,19 +147,37 @@ public class StudentRepo implements StudentDao {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery(query);
 
-            while (rs.next()) {
-                Student student = mapStudent(rs);
+            Long previousStudentId = null;
+            Student student = null;
 
-                if (rs.getInt("scholarshipId") != 0) {
-                    Scholarship scholarship = new Scholarship();
-                    scholarship.setId(rs.getLong("scholarshipId"));
-                    scholarship.setScholarshipAmount(rs.getDouble("scholarship_amount"));
-                    scholarship.setStudentId(rs.getLong("student_id"));
-                    scholarship.setAwardDate(rs.getTimestamp("award_date").toLocalDateTime()); // или rs.getDate("award_date").toLocalDate(), если нужно только дату
-                    student.setScholarship(scholarship);
+            while (rs.next()) {
+                Long studentId = rs.getLong("id");
+
+                if (!studentId.equals(previousStudentId)) {
+                    student = mapStudent(rs);
+
+                    if (rs.getInt("scholarshipId") != 0) {
+                        Scholarship scholarship = new Scholarship();
+                        scholarship.setId(rs.getLong("scholarshipId"));
+                        scholarship.setScholarshipAmount(rs.getDouble("scholarship_amount"));
+                        scholarship.setStudentId(rs.getLong("id"));
+                        scholarship.setAwardDate(rs.getTimestamp("award_date").toLocalDateTime()); // Или rs.getDate("award_date").toLocalDate(), если нужно только дату
+                        student.setScholarship(scholarship);
+                    }
+
+                    student.setGrades(new ArrayList<>());
+                    students.add(student);
+                    previousStudentId = studentId;
                 }
 
-                students.add(student);
+                if (rs.getObject("course_id") != null) {
+                    Grade grade = new Grade();
+                    grade.setCourseId(rs.getLong("course_id"));
+                    grade.setStudentId(studentId);
+                    grade.setGrade(rs.getString("grade"));
+
+                    student.getGrades().add(grade);
+                }
             }
         } catch (SQLException e) {
             logger.error("Error retrieving all students", e);
@@ -164,6 +186,7 @@ public class StudentRepo implements StudentDao {
         }
         return students;
     }
+
 
     @Override
     public Student update(Student student) {
