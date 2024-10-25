@@ -4,14 +4,14 @@ import com.laba.solvd.model.Student;
 
 import java.util.List;
 
-public interface StudentService {
+public interface IStudentService {
     Student findById(Long id) throws InterruptedException;
 
-    List<Student> findAll();
+    List<Student> findAll() throws InterruptedException;
 
     void create(Student student);
 
-    void update(Student student);
+    Student update(Student student);
 
     void deleteById(Long id);
 }

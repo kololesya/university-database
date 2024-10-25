@@ -1,21 +1,25 @@
 package com.laba.solvd.service.serviceImpl;
 
-import com.laba.solvd.dao.GenericDao;
-import com.laba.solvd.dao.StudentRepo;
+import com.laba.solvd.dao.StudentDao;
+import com.laba.solvd.dao.repoImpl.ScholarshipRepo;
+import com.laba.solvd.dao.repoImpl.StudentRepo;
 import com.laba.solvd.model.Scholarship;
 import com.laba.solvd.model.Student;
-import com.laba.solvd.service.ScholarshipService;
-import com.laba.solvd.service.StudentService;
+import com.laba.solvd.service.IScholarshipService;
+import com.laba.solvd.service.IStudentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class StudentServiceImpl implements StudentService {
-    private final GenericDao<Student> studentRepo;
-    private final ScholarshipService scholarshipService;
+public class StudentServiceImpl implements IStudentService {
+    private static final Logger logger = LoggerFactory.getLogger(ScholarshipRepo.class.getName());
+    private final StudentDao studentRepo;
+    private final IScholarshipService scholarshipService;
 
-    public StudentServiceImpl(StudentRepo studentRepo, ScholarshipService scholarshipService) {
-        this.studentRepo = studentRepo;
-        this.scholarshipService = scholarshipService;
+    public StudentServiceImpl() {
+        this.studentRepo = new StudentRepo();
+        this.scholarshipService = new ScholarshipServiceImpl();
     }
 
     @Override
@@ -29,13 +33,8 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public List<Student> findAll() {
-        List<Student> students = studentRepo.findAll();
-        for (Student student : students) {
-            Scholarship scholarship = scholarshipService.findByStudentId(student.getId());
-            student.setScholarship(scholarship);
-        }
-        return students;
+    public List<Student> findAll() throws InterruptedException {
+        return studentRepo.findAll();
     }
 
     @Override
@@ -44,8 +43,20 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public void update(Student student) {
-        studentRepo.update(student);
+    public Student update(Student student) {
+        Student existStudent = findById(student.getId());
+
+        if (existStudent == null) {
+            logger.error("Student with ID " + student.getId() + " was not found.");
+            return null;
+        }
+
+        existStudent.setEmail(student.getEmail());
+        existStudent.setLastName(student.getLastName());
+        existStudent.setFirstName(student.getFirstName());
+
+        studentRepo.update(existStudent);
+        return existStudent;
     }
 
     @Override
@@ -53,7 +64,7 @@ public class StudentServiceImpl implements StudentService {
         studentRepo.deleteById(id);
     }
 
-    public Scholarship getScholarshipsForStudent(Long studentId) {
+    public Scholarship getScholarshipsForStudent(Long studentId) throws InterruptedException {
         return scholarshipService.findByStudentId(studentId);
     }
 }

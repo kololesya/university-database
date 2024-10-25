@@ -6,6 +6,6 @@ public interface GenericDao<T>{
     T findById(Long id) throws InterruptedException;
     List<T> findAll();
     void create(T t);
-    void update(T t);
+    T update(T t);
     void deleteById(Long id);
 }

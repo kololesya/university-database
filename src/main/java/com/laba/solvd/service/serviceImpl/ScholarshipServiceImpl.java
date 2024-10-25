@@ -1,16 +1,20 @@
 package com.laba.solvd.service.serviceImpl;
 
-import com.laba.solvd.dao.ScholarshipRepo;
+import com.laba.solvd.dao.ScholarshipDao;
+import com.laba.solvd.dao.repoImpl.ScholarshipRepo;
 import com.laba.solvd.model.Scholarship;
-import com.laba.solvd.service.ScholarshipService;
+import com.laba.solvd.service.IScholarshipService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class ScholarshipServiceImpl implements ScholarshipService {
-    private final ScholarshipRepo scholarshipRepo;
+public class ScholarshipServiceImpl implements IScholarshipService {
+    private static final Logger logger = LoggerFactory.getLogger(ScholarshipRepo.class.getName());
+    private final ScholarshipDao scholarshipRepo;
 
-    public ScholarshipServiceImpl(ScholarshipRepo scholarshipRepo) {
-        this.scholarshipRepo = scholarshipRepo;
+    public ScholarshipServiceImpl() {
+        this.scholarshipRepo = new ScholarshipRepo();
     }
 
     @Override
@@ -24,7 +28,7 @@ public class ScholarshipServiceImpl implements ScholarshipService {
     }
 
     @Override
-    public Scholarship findById(Long id) {
+    public Scholarship findById(Long id) throws InterruptedException {
         return scholarshipRepo.findById(id);
     }
 
@@ -34,12 +38,22 @@ public class ScholarshipServiceImpl implements ScholarshipService {
     }
 
     @Override
-    public Scholarship findByStudentId(Long studentId) {
-        return scholarshipRepo.findByStudentId(studentId);
+    public Scholarship findByStudentId(Long studentId) throws InterruptedException {
+        return scholarshipRepo.findById(studentId);
     }
 
     @Override
-    public void update(Scholarship scholarship) {
-        scholarshipRepo.update(scholarship);
+    public Scholarship update(Scholarship scholarship) throws InterruptedException {
+        Scholarship existScholarship = findById(scholarship.getId());
+
+        if (existScholarship == null) {
+            logger.error("Scholarship with ID " + scholarship.getId() + " was not found.");
+            return null;
+        }
+        existScholarship.setScholarshipAmount(scholarship.getScholarshipAmount());
+        existScholarship.setAwardDate(scholarship.getAwardDate());
+
+        scholarshipRepo.update(existScholarship);
+        return existScholarship;
     }
 }

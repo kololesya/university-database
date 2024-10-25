@@ -23,7 +23,6 @@ public class Student {
     private LocalDateTime enrollmentDate;
     private Long universityId;
     private Scholarship scholarship;
-    private List<Club> clubs;
     private List<Grade> grades;
 
     public Student(Long id, String firstName, String lastName, String email, LocalDateTime enrollmentDate, Long universityId) {
@@ -34,6 +33,6 @@ public class Student {
         this.enrollmentDate = enrollmentDate;
         this.universityId = universityId;
         this.scholarship = null;
-        this.clubs = null;
+        this.grades = null;
     }
 }
