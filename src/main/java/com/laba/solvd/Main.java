@@ -1,23 +1,30 @@
 package com.laba.solvd;
 
+import com.laba.solvd.model.Course;
 import com.laba.solvd.model.Grade;
-import com.laba.solvd.model.Scholarship;
 import com.laba.solvd.model.Student;
+import com.laba.solvd.service.ICourseService;
 import com.laba.solvd.service.IGradeService;
-import com.laba.solvd.service.ScholarshipService;
-import com.laba.solvd.service.StudentService;
+import com.laba.solvd.service.IScholarshipService;
+import com.laba.solvd.service.IStudentService;
+import com.laba.solvd.service.serviceImpl.CourseServiceImpl;
 import com.laba.solvd.service.serviceImpl.GradeServiceImpl;
 import com.laba.solvd.service.serviceImpl.ScholarshipServiceImpl;
 import com.laba.solvd.service.serviceImpl.StudentServiceImpl;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
-        ScholarshipService scholarshipService = new ScholarshipServiceImpl();
-        StudentService studentService = new StudentServiceImpl();
+        IScholarshipService scholarshipService = new ScholarshipServiceImpl();
+        IStudentService studentService = new StudentServiceImpl();
         IGradeService gradeService = new GradeServiceImpl();
+        ICourseService courseService = new CourseServiceImpl();
+
+        List<Course> courses = courseService.findAll();
+        for (Course course : courses){
+            System.out.println(course);
+        }
 
 //        Grade grade1 = new Grade(3L, 3L, "B");
 //        gradeService.create(grade1);

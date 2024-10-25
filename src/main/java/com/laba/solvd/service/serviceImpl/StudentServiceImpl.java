@@ -5,17 +5,17 @@ import com.laba.solvd.dao.repoImpl.ScholarshipRepo;
 import com.laba.solvd.dao.repoImpl.StudentRepo;
 import com.laba.solvd.model.Scholarship;
 import com.laba.solvd.model.Student;
-import com.laba.solvd.service.ScholarshipService;
-import com.laba.solvd.service.StudentService;
+import com.laba.solvd.service.IScholarshipService;
+import com.laba.solvd.service.IStudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class StudentServiceImpl implements StudentService {
+public class StudentServiceImpl implements IStudentService {
     private static final Logger logger = LoggerFactory.getLogger(ScholarshipRepo.class.getName());
     private final StudentDao studentRepo;
-    private final ScholarshipService scholarshipService;
+    private final IScholarshipService scholarshipService;
 
     public StudentServiceImpl() {
         this.studentRepo = new StudentRepo();

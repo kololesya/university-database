@@ -3,13 +3,13 @@ package com.laba.solvd.service.serviceImpl;
 import com.laba.solvd.dao.ScholarshipDao;
 import com.laba.solvd.dao.repoImpl.ScholarshipRepo;
 import com.laba.solvd.model.Scholarship;
-import com.laba.solvd.service.ScholarshipService;
+import com.laba.solvd.service.IScholarshipService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class ScholarshipServiceImpl implements ScholarshipService {
+public class ScholarshipServiceImpl implements IScholarshipService {
     private static final Logger logger = LoggerFactory.getLogger(ScholarshipRepo.class.getName());
     private final ScholarshipDao scholarshipRepo;
 
